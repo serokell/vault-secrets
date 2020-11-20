@@ -1,11 +1,14 @@
 {
   description = "Serokell Vault Tooling";
 
-  outputs = { self, nixpkgs }: {
+  outputs = { self }: {
 
-    packages.x86_64-linux.hello = nixpkgs.legacyPackages.x86_64-linux.hello;
+    overlay = final: prev: {
+      vault-push-approles =
+        final.callPackage ./scripts/vault-push-approles.nix { };
+    };
 
-    defaultPackage.x86_64-linux = self.packages.x86_64-linux.hello;
+    nixosModules.vault-secrets = import ./modules/vault-secrets.nix;
 
   };
 }
