@@ -26,7 +26,7 @@
       checks =
         let
           tests = import ./tests/modules/all-tests.nix {
-            inherit pkgs system;
+            inherit pkgs system self;
             callTest = t: t.test;
             nixosPath = "${nixpkgs}/nixos";
           };

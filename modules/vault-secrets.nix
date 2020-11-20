@@ -140,14 +140,6 @@ in
         '';
       };
 
-      vaultAddress = mkOption {
-        type = with types; str;
-        default = "https://127.0.0.1:8200";
-        description = ''
-          The address of the Vault server, passed via <literal>VAULT_ADDR</literal> environment variable.
-      '';
-      };
-
       outPrefix = mkOption {
         type = with types; str;
         default = "/run/secrets";
@@ -156,6 +148,21 @@ in
 
           Should probably be on tmpfs to avoid leaking secrets.
         '';
+      };
+
+      approlePrefix = mkOption {
+        type = with types; nullOr str;
+        default = null;
+        description = ''
+        '';
+      };
+
+      vaultAddress = mkOption {
+        type = with types; str;
+        default = "https://127.0.0.1:8200";
+        description = ''
+          The address of the Vault server, passed via <literal>VAULT_ADDR</literal> environment variable.
+      '';
       };
 
       secrets = mkOption {

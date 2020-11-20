@@ -1,6 +1,6 @@
 # Copied from https://github.com/NixOS/nixpkgs/blob/master/nixos/tests/all-tests.nix
 
-{ system, pkgs, callTest, nixosPath }:
+{ system, pkgs, callTest, nixosPath, self }:
 # The return value of this function will be an attrset with arbitrary depth and
 # the `anything` returned by callTest at its test leafs.
 # The tests not supported by `system` will be replaced with `{}`, so that
@@ -17,7 +17,7 @@ let
     else if hasAttr "test" val then callTest val
     else mapAttrs (n: s: discoverTests s) val;
   handleTest = path: args:
-    discoverTests (import path ({ inherit system pkgs nixosPath; } // args));
+    discoverTests (import path ({ inherit system pkgs nixosPath self; } // args));
   handleTestOn = systems: path: args:
     if elem system systems then handleTest path args
     else {};
