@@ -82,13 +82,14 @@
           approle = renderApprole params;
           policy = renderPolicy params;
           vaultWrite = ''
-            echo vault write "auth/approle/role/${approleName}" "@${approle}"
-            echo vault policy write "${approleName}" "${policy}"
+            echo '+' vault write "auth/approle/role/${approleName}" "@${approle}"
+            echo '+' vault policy write "${approleName}" "${policy}"
           '';
 
         in ''
           export VAULT_ADDR="${vaultAddress}"
 
+          # Ensure a valid Vault token is available
           token_data="$(${vault}/bin/vault token lookup -format=json)"
           vault_token_never_expire="$(${jq}/bin/jq '.data.expire_time == null' <<< "$token_data")"
           vault_token_ttl="$(${jq}/bin/jq '.data.ttl' <<< "$token_data")"
@@ -98,45 +99,68 @@
           fi
 
           write() {
-            set -x
+            # set -x
             ${vaultWrite}
-            set +x
+            # set +x
           }
 
           ask_write() {
-            if ! [[ " ''${VAULT_PUSH_ALL_APPROLES:-} " == " true " ]]; then
-              read -N 1 -p "Write approle ${approleName} to ${vaultAddress}? [All/Yes/Details/Skip/Quit] "
+            if ! [[ "''${VAULT_PUSH_ALL_APPROLES:-}" == "true" ]]; then
+              read -rsn 1 -p "Write approle ${approleName} to ${vaultAddress}? [(A)ll/(y)es/(d)etails/(s)kip/(q)uit] "
               echo
               case "$REPLY" in
-                A|a) VAULT_PUSH_ALL_APPROLES=true ;;
-                Y|y) ;;
-                D|d) {
-                  echo "Merged attributes of this approle:"
-                  cat "${renderJSON "merged" params}" | ${jq}/bin/jq .
-                  echo "Approle JSON (${approle}):"
-                  cat ${approle} | ${jq}/bin/jq .
-                  echo "Policy JSON (${policy}):"
-                  cat ${policy} | ${jq}/bin/jq
-                  echo "Will execute the following commands:"
-                  echo '${vaultWrite}'
+                A|a|"") # All
+                  VAULT_PUSH_ALL_APPROLES=true
+                  ;;
+
+                y) # yes
+                  # Continue
+                  ;;
+
+                d) # details
+                  {
+                    echo "* Merged attributes of this approle:"
+                    cat "${renderJSON "merged" params}" | ${jq}/bin/jq .
+                    echo
+
+                    echo "* Approle JSON (${approle}):"
+                    cat ${approle} | ${jq}/bin/jq .
+                    echo
+
+                    echo "* Policy JSON (${policy}):"
+                    cat ${policy} | ${jq}/bin/jq
+                    echo
+
+                    echo "* Will execute the following commands:"
+                    echo '${vaultWrite}'
+                    echo
+                  } | ''${PAGER:-less}
+
                   ask_write
                   return
-                } ;;
-                S|s) {
-                  echo "Skipping ${approleName}"
+                  ;;
+
+                s) # skip
+                  echo "* Skipping ${approleName}"
+                  echo
                   return
-                } ;;
-                Q|q) exit 1 ;;
-                *) {
-                  echo "Unrecognized reply: $REPLY"
-                  echo "Try again"
+                  ;;
+
+                q) # quit
+                  exit 1
+                  ;;
+
+                *) # unknown
+                  echo "* Unrecognized reply: $REPLY. Please try again."
+                  echo
                   ask_write
                   return
-                } ;;
+                  ;;
               esac
             fi
 
             write
+            echo
           }
 
           if [[ $# -eq 0 ]]; then
