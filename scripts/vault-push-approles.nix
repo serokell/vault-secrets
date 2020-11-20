@@ -30,8 +30,8 @@
       secret_id_num_uses = 0;
     };
 
-    mkApprole = { name, ... }:
-      (final.approleParams // { token_policies = [ name ]; });
+    mkApprole = { approleName, ... }:
+      (final.approleParams // { token_policies = [ approleName ]; });
 
     renderApprole = { approleName, ... }@params:
       final.renderJSON "approle-${approleName}" (final.mkApprole params);
