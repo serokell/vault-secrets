@@ -3,42 +3,34 @@
 (import "${nixosPath}/tests/make-test-python.nix" ({ pkgs, ... }: {
   name = "vault-secrets";
   nodes = {
-    vault = { pkgs, lib, ... }: {
-      environment.systemPackages = [ pkgs.vault ];
-      environment.variables.VAULT_ADDR = "http://127.0.0.1:8200";
-
-      networking.firewall.allowedTCPPorts = [ 8200 ];
-
+    server = { pkgs, ... }: {
       # An unsealed dummy vault
-      systemd.services.vault = {
+      networking.firewall.allowedTCPPorts = [ 8200 ];
+      systemd.services.dummy-vault = {
         wantedBy = ["multi-user.target"];
-        after = [ "network.target" ];
         path = with pkgs; [ getent ];
-        environment.HOME = "/var/lib/vault";
         serviceConfig = {
-          ExecStart = lib.mkForce "${pkgs.vault}/bin/vault server -dev";
-          StateDirectory = "vault";
-          WorkingDirectory = "/var/lib/vault";
+          ExecStart = "${pkgs.vault}/bin/vault server -dev -dev-root-token-id='root' -dev-listen-address='0.0.0.0:8200'";
         };
       };
     };
 
     client = { pkgs, ... }: {
       environment.systemPackages = [ pkgs.vault ];
-      environment.variables.VAULT_ADDR = "http://vault:8200";
+      environment.variables.VAULT_ADDR = "http://server:8200";
     };
   };
 
   # API: https://github.com/NixOS/nixpkgs/blob/master/nixos/lib/test-driver/test-driver.py
-  testScript = ''
+  testScript = let
+    sshToServer = "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i privkey.snakeoil server";
+  in ''
     start_all()
 
-    vault.wait_for_unit("multi-user.target")
-    vault.wait_for_unit("vault.service")
-    vault.wait_for_open_port(8200)
-    vault.succeed("vault status | grep Sealed | grep false")
+    server.wait_for_unit("multi-user.target")
+    server.wait_for_unit("dummy-vault")
+    server.wait_for_open_port(8200)
 
-    client.succeed("export VAULT_TOKEN=$(ssh vault 'cat /var/lib/vault/.vault-token)'")
-    client.succeed("vault secrets list")
+    client.succeed("VAULT_TOKEN=root vault secrets list")
   '';
 })) args
