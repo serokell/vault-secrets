@@ -22,6 +22,7 @@
       environment.systemPackages = [ pkgs.vault ];
       environment.variables.VAULT_ADDR = "http://server:8200";
 
+      # FIXME: How to provision testing approle credentials?
       vault-secrets = {
         vaultAddress = "http://server:8200";
         secrets.test = {
@@ -40,8 +41,8 @@
     server.wait_for_unit("multi-user.target")
     server.wait_for_unit("dummy-vault")
     server.wait_for_open_port(8200)
-
     client.wait_for_unit("test-secrets")
+
     client.succeed("VAULT_TOKEN=root vault secrets list")
   '';
 })) args
