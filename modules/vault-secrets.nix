@@ -237,7 +237,7 @@ in
 
         '' + optionalString (extraScript != "") ''
           secretsPath="${secretsPath}"
-          source <<(jq -r '.data.data | to_entries[] | "${optionalString (environmentVariableNamePrefix != null) "export ${toUpper environmentVariableNamePrefix}_"}\(.key)=\"\(.value)\""' <<< "$json_dump")
+          source <<(jq -r '.data.data | to_entries[] | "export ${optionalString (environmentVariableNamePrefix != null) "${toUpper environmentVariableNamePrefix}_"}\(.key)=\"\(.value)\""' <<< "$json_dump")
           echo "Running extra script..."
           ${extraScript}
           echo "Extra script done."
