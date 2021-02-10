@@ -100,8 +100,8 @@
           approle = renderApprole params;
           policy = renderPolicy params;
           vaultWrite = ''
-            echo '+' vault write "auth/approle/role/${approleName}" "@${approle}"
-            echo '+' vault policy write "${approleName}" "${policy}"
+            vault write "auth/approle/role/${approleName}" "@${approle}"
+            vault policy write "${approleName}" "${policy}"
           '';
 
         in ''
@@ -117,9 +117,9 @@
           fi
 
           write() {
-            # set -x
+            set -x
             ${vaultWrite}
-            # set +x
+            set +x
           }
 
           # Ask the user what to do with the current approle
