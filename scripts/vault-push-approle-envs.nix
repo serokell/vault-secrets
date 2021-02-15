@@ -90,6 +90,7 @@
         lib.concatMapStringsSep "\n" pushApproleEnv allApproleParams;
     in writeShellScriptBin "vault-push-approle-envs" ''
       set -euo pipefail
+      export PATH='${jq}:${vault}':''${PATH:+':'}$PATH
       ${pushAllApproleEnvs}
     '';
 

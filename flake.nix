@@ -33,6 +33,8 @@
           };
         in { inherit (tests) vault-secrets; };
 
+        legacyPackages = nixpkgs.legacyPackages.${system}.extend self.overlay;
+
         devShell = pkgs.mkShell { buildInputs = [ nixMaster ]; };
       }));
 }
