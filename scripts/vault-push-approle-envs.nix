@@ -1,5 +1,5 @@
 # Generate and push approles to vault
-{ writeShellScriptBin, jq, vault, coreutils, lib }:
+{ writeShellScriptBin, jq, bash, vault, openssh, coreutils, lib }:
 # Inputs: a flake with `nixosConfigurations`
 
 # Usage:
@@ -36,6 +36,8 @@
           '';
         in ''
           export VAULT_ADDR="${vaultAddress}"
+
+          ${./vault-ensure-token.sh}
 
           if [[ $# -eq 0 ]] || [[ " $@ " =~ " ${approleName} " ]]; then
             # If we don't get any arguments, or the current approle name is in the arguments list, push it
@@ -95,7 +97,7 @@
         lib.concatMapStringsSep "\n" pushApproleEnv allApproleParams;
     in writeShellScriptBin "vault-push-approle-envs" ''
       set -euo pipefail
-      export PATH='${jq}/bin:${vault}/bin':''${PATH:+':'}$PATH
+      export PATH=$PATH''${PATH:+':'}'${jq}/bin:${vault}/bin:${openssh}/bin:${coreutils}/bin:${bash}/bin'
       ${pushAllApproleEnvs}
     '';
 

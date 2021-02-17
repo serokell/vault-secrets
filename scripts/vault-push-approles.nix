@@ -1,5 +1,5 @@
 # Generate and push approles to vault
-{ writeShellScriptBin, jq, vault, coreutils, lib }:
+{ writeShellScriptBin, jq, vault, coreutils, bash, lib }:
 # Inputs: a flake with `nixosConfigurations`
 
 # Usage:
@@ -96,21 +96,14 @@
           approle = renderApprole params;
           policy = renderPolicy params;
           vaultWrite = ''
-            ${vault}/bin/vault write "auth/approle/role/${approleName}" "@${approle}"
-            ${vault}/bin/vault policy write "${approleName}" "${policy}"
+            vault write "auth/approle/role/${approleName}" "@${approle}"
+            vault policy write "${approleName}" "${policy}"
           '';
 
         in ''
           export VAULT_ADDR="${vaultAddress}"
 
-          # Ensure a valid Vault token is available
-          token_data="$(${vault}/bin/vault token lookup -format=json)"
-          vault_token_never_expire="$(${jq}/bin/jq '.data.expire_time == null' <<< "$token_data")"
-          vault_token_ttl="$(${jq}/bin/jq '.data.ttl' <<< "$token_data")"
-          if [[ $vault_token_never_expire == false && $vault_token_ttl -le 0 ]]; then
-            echo 'Vault token expired or invalid. Please log into vault first.'
-            exit 1
-          fi
+          ${./vault-ensure-token.sh}
 
           write() {
             set -x
@@ -228,6 +221,7 @@
         lib.concatMapStringsSep "\n" writeApprole allApproleParams;
     in writeShellScriptBin "vault-push-approles" ''
       set -euo pipefail
+      export PATH=$PATH''${PATH:+':'}'${jq}/bin:${vault}/bin:${coreutils}/bin:${bash}/bin'
       ${writeAllApproles}
     '';
 

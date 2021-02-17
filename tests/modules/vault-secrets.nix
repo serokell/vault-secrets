@@ -46,7 +46,6 @@
           openssh.authorizedKeys.keys = [ ssh-keys.snakeOilPublicKey ];
         };
 
-        # FIXME: How to provision testing approle credentials?
         vault-secrets = {
           vaultAddress = "http://server:8200";
           secrets.test = { };
@@ -57,11 +56,14 @@
 
       supervisor = { pkgs, ... }: {
         environment.variables.VAULT_ADDR = "http://server:8200";
+        environment.variables.VAULT_TOKEN = "root";
+        environment.systemPackages = [ pkgs.vault ];
       };
     };
 
     # API: https://github.com/NixOS/nixpkgs/blob/master/nixos/lib/test-driver/test-driver.py
     testScript = let
+      # A set of flake outputs mimicking what one would find in an actual flake defining a NixOS system
       fakeFlake = {
         nixosConfigurations.client = self.inputs.nixpkgs.lib.nixosSystem {
           modules = [ nodes.client ];
@@ -75,20 +77,16 @@
       server.wait_for_unit("dummy-vault")
       server.wait_for_open_port(8200)
 
-      server.succeed(
-          "VAULT_ADDR=http://server:8200 VAULT_TOKEN=root vault auth enable approle"
-      )
+      supervisor.succeed("vault auth enable approle")
 
-      server.succeed(
-          "VAULT_ADDR=http://server:8200 VAULT_TOKEN=root vault secrets enable -version=2 kv"
-      )
+      supervisor.succeed("vault secrets enable -version=2 kv")
 
+      supervisor.succeed("vault kv put kv/test/environment HELLO='Hello, World'")
+
+      # Unset VAULT_ADDR and PATH to make sure those are set correctly in the script
+      # We keep VAULT_TOKEN set because it's actually used to authenticate to vault
       supervisor.succeed(
-          "VAULT_ADDR=http://server:8200 VAULT_TOKEN=root ${pkgs.vault}/bin/vault kv put kv/test/environment HELLO='Hello, World'"
-      )
-
-      supervisor.succeed(
-          "VAULT_TOKEN=root ${
+          "VAULT_ADDR= PATH= ${
             self.legacyPackages.${pkgs.system}.vault-push-approles fakeFlake
           }/bin/vault-push-approles test"
       )
@@ -99,12 +97,12 @@
       supervisor.succeed("chmod 600 privkey.snakeoil")
 
       supervisor.succeed(
-          "VAULT_TOKEN=root SSH_OPTS='-o StrictHostKeyChecking=no -i privkey.snakeoil' ${
+          "VAULD_ADDR= PATH= SSH_OPTS='-o StrictHostKeyChecking=no -i privkey.snakeoil' ${
             self.legacyPackages.${pkgs.system}.vault-push-approle-envs fakeFlake
           }/bin/vault-push-approle-envs"
       )
 
-      client.succeed("systemctl restart test-secrets; systemctl restart test")
+      client.succeed("systemctl restart test")
 
       client.wait_for_unit("test-secrets")
 
