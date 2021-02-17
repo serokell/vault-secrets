@@ -1,23 +1,24 @@
 { nixosPath, self, ... }@args:
 
 (import "${nixosPath}/tests/make-test-python.nix" ({ pkgs, ... }:
-  let ssh-keys = import "${self.inputs.nixpkgs}/nixos/tests/ssh-keys.nix" pkgs;
+  let
+    ssh-keys = import "${self.inputs.nixpkgs}/nixos/tests/ssh-keys.nix" pkgs;
+    vault-port = 8200;
+    vault-address = "http://server:${toString vault-port}";
   in rec {
     name = "vault-secrets";
     nodes = {
       server = { pkgs, ... }:
         let
           serverArgs =
-            "-dev -dev-root-token-id='root' -dev-listen-address='0.0.0.0:8200'";
+            "-dev -dev-root-token-id='root' -dev-listen-address='0.0.0.0:${toString vault-port}'";
         in {
-          environment.systemPackages = [ pkgs.vault ];
           # An unsealed dummy vault
-          networking.firewall.allowedTCPPorts = [ 8200 ];
+          networking.firewall.allowedTCPPorts = [ vault-port ];
           systemd.services.dummy-vault = {
             wantedBy = [ "multi-user.target" ];
-            path = with pkgs; [ getent ];
-            serviceConfig.ExecStart =
-              "${pkgs.vault}/bin/vault server ${serverArgs}";
+            path = with pkgs; [ getent vault ];
+            script = "vault server ${serverArgs}";
           };
         };
 
@@ -49,7 +50,7 @@
         };
 
         vault-secrets = {
-          vaultAddress = "http://server:8200";
+          vaultAddress = vault-address;
           secrets.test = { };
         };
 
@@ -79,7 +80,7 @@
 
         set -x
 
-        VAULT_ADDR="http://server:8200"
+        VAULT_ADDR="${vault-address}"
         VAULT_TOKEN=root
 
         export VAULT_ADDR VAULT_TOKEN
