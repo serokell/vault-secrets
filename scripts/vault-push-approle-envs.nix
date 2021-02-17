@@ -9,7 +9,11 @@
   overrideable = final: {
     hostNameOverrides = { };
     getHostName = { attrName, config, ... }:
-      final.hostNameOverrides.${attrName} or "${config.networking.hostName}.${config.networking.domain}";
+      final.hostNameOverrides.${attrName} or (if isNull
+      config.networking.domain then
+        config.networking.hostName
+      else
+        "${config.networking.hostName}.${config.networking.domain}");
   };
 
   __toString = self:
@@ -24,9 +28,11 @@
           hostname = final.getHostName params;
 
           push = ''
-            ${./vault-get-approle-env.sh} ${approleName} | ssh "${hostname}" ''${SSH_OPTS:-} "sudo mkdir -p ${
+            ${
+              ./vault-get-approle-env.sh
+            } ${approleName} | ssh "${hostname}" ''${SSH_OPTS:-} "sudo mkdir -p ${
               builtins.dirOf environmentFile
-            }; sudo -n tee ${environmentFile} >/dev/null"
+            }; sudo tee ${environmentFile} >/dev/null"
           '';
         in ''
           export VAULT_ADDR="${vaultAddress}"
@@ -53,15 +59,14 @@
             inherit (cfg) config;
           }) [ "__toString" "secrets" ]) vs.secrets);
 
-          # Find all configurations that have vault-secrets defined
+      # Find all configurations that have vault-secrets defined
       configsWithSecrets = lib.filterAttrs (_: cfg:
         cfg.config ? vault-secrets && cfg.config.vault-secrets.secrets != { })
         nixosConfigurations;
 
       # Get all approles for all NixOS configurations in the given flake
       approleParamsForAllMachines =
-        builtins.mapAttrs approleParamsForMachine
-        configsWithSecrets;
+        builtins.mapAttrs approleParamsForMachine configsWithSecrets;
 
       # All approles for all NixOS configurations plus the extra approles
       allApproleParams =
@@ -90,7 +95,7 @@
         lib.concatMapStringsSep "\n" pushApproleEnv allApproleParams;
     in writeShellScriptBin "vault-push-approle-envs" ''
       set -euo pipefail
-      export PATH='${jq}:${vault}':''${PATH:+':'}$PATH
+      export PATH='${jq}/bin:${vault}/bin':''${PATH:+':'}$PATH
       ${pushAllApproleEnvs}
     '';
 

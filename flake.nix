@@ -17,7 +17,7 @@
           final.callPackage ./scripts/vault-push-approle-envs.nix { };
       };
       nixosModules.vault-secrets = import ./modules/vault-secrets.nix;
-    } // (flake-utils.lib.eachDefaultSystem (system:
+    } // (flake-utils.lib.eachSystem [ "x86_64-linux" ] (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
         inherit (pkgs) lib;

@@ -96,8 +96,8 @@
           approle = renderApprole params;
           policy = renderPolicy params;
           vaultWrite = ''
-            vault write "auth/approle/role/${approleName}" "@${approle}"
-            vault policy write "${approleName}" "${policy}"
+            ${vault}/bin/vault write "auth/approle/role/${approleName}" "@${approle}"
+            ${vault}/bin/vault policy write "${approleName}" "${policy}"
           '';
 
         in ''
