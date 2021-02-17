@@ -88,9 +88,9 @@
       )
 
       supervisor.succeed(
-          "yes y | VAULT_TOKEN=root ${
+          "VAULT_TOKEN=root ${
             self.legacyPackages.${pkgs.system}.vault-push-approles fakeFlake
-          }/bin/vault-push-approles"
+          }/bin/vault-push-approles test"
       )
 
       supervisor.succeed(
