@@ -26,6 +26,8 @@
 
         systemd.services.test = {
           script = ''
+            ls '${config.vault-secrets.secrets.test}'
+            cat '${config.vault-secrets.secrets.test}/test_file' | grep 'Test file contents!'
             env
             echo $HELLO | grep 'Hello, World'
           '';
@@ -55,8 +57,6 @@
       };
 
       supervisor = { pkgs, ... }: {
-        environment.variables.VAULT_ADDR = "http://server:8200";
-        environment.variables.VAULT_TOKEN = "root";
         environment.systemPackages = [ pkgs.vault ];
       };
     };
@@ -70,6 +70,46 @@
           inherit (pkgs) system;
         };
       };
+
+      inherit (self.legacyPackages.${pkgs.system})
+        vault-push-approles vault-push-approle-envs;
+
+      supervisor-setup = pkgs.writeShellScript "supervisor-setup" ''
+        set -euo pipefail
+
+        set -x
+
+        VAULT_ADDR="http://server:8200"
+        VAULT_TOKEN=root
+
+        export VAULT_ADDR VAULT_TOKEN
+
+        # Set up Vault
+        vault auth enable approle
+        vault secrets enable -version=2 kv
+
+        # Put secrets for the test unit into Vault
+        vault kv put kv/test/environment HELLO='Hello, World'
+        vault kv put kv/test/secrets test_file='Test file contents!'
+
+        # Set up SSH hostkey to connect to the client
+        cat ${ssh-keys.snakeOilPrivateKey} > privkey.snakeoil
+        chmod 600 privkey.snakeoil
+        SSH_OPTS='-o StrictHostKeyChecking=no -i privkey.snakeoil'
+        export SSH_OPTS
+
+        # Unset VAULT_ADDR and PATH to make sure those are set correctly in the scripts
+        # We keep VAULT_TOKEN set because it's actually used to authenticate to vault
+        VAULD_ADDR=
+        PATH=
+        export VAULT_ADDR PATH
+
+        # Push approles to vault
+        ${vault-push-approles fakeFlake}/bin/vault-push-approles test
+
+        # Upload approle environments to the client
+        ${vault-push-approle-envs fakeFlake}/bin/vault-push-approle-envs
+      '';
     in ''
       start_all()
 
@@ -77,30 +117,7 @@
       server.wait_for_unit("dummy-vault")
       server.wait_for_open_port(8200)
 
-      supervisor.succeed("vault auth enable approle")
-
-      supervisor.succeed("vault secrets enable -version=2 kv")
-
-      supervisor.succeed("vault kv put kv/test/environment HELLO='Hello, World'")
-
-      # Unset VAULT_ADDR and PATH to make sure those are set correctly in the script
-      # We keep VAULT_TOKEN set because it's actually used to authenticate to vault
-      supervisor.succeed(
-          "VAULT_ADDR= PATH= ${
-            self.legacyPackages.${pkgs.system}.vault-push-approles fakeFlake
-          }/bin/vault-push-approles test"
-      )
-
-      supervisor.succeed(
-          "cat ${ssh-keys.snakeOilPrivateKey} > privkey.snakeoil"
-      )
-      supervisor.succeed("chmod 600 privkey.snakeoil")
-
-      supervisor.succeed(
-          "VAULD_ADDR= PATH= SSH_OPTS='-o StrictHostKeyChecking=no -i privkey.snakeoil' ${
-            self.legacyPackages.${pkgs.system}.vault-push-approle-envs fakeFlake
-          }/bin/vault-push-approle-envs"
-      )
+      supervisor.succeed("${supervisor-setup}")
 
       client.succeed("systemctl restart test")
 
