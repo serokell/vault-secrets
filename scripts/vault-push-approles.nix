@@ -221,7 +221,7 @@
         lib.concatMapStringsSep "\n" writeApprole allApproleParams;
     in writeShellScriptBin "vault-push-approles" ''
       set -euo pipefail
-      export PATH=$PATH''${PATH:+':'}'${jq}/bin:${vault}/bin:${coreutils}/bin:${bash}/bin'
+      export PATH=$PATH''${PATH:+':'}'${lib.makeBinPath [ jq vault coreutils bash ]}'
       ${writeAllApproles}
     '';
 
