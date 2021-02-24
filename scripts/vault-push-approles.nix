@@ -56,10 +56,10 @@
       final.approleCapabilities.${approleName} or [ "read" ];
 
     # Generate an approle policy from its secret definition
-    mkPolicy = { approleName, name, vaultPathPrefix, namespace, ... }@params:
+    mkPolicy = { approleName, name, vaultPrefix, ... }@params:
       let
-        splitPrefix = builtins.filter builtins.isString
-          (builtins.split "/" vaultPathPrefix);
+        splitPrefix =
+          builtins.filter builtins.isString (builtins.split "/" vaultPrefix);
 
         insertAt = lst: index: value:
           (lib.lists.take index lst) ++ [ value ] ++ (lib.lists.drop index lst);
@@ -70,21 +70,17 @@
         metadataPrefix = makePrefix "metadata";
         dataPrefix = makePrefix "+";
       in {
-        path = [
-          {
-            "${metadataPrefix}/${namespace}/${name}/*" =
-              [{ capabilities = [ "list" ]; }];
-          }
-          {
-            "${dataPrefix}/${namespace}/${name}/*" =
-              [{ capabilities = final.approleCapabilitiesFor params; }];
-          }
-        ];
+        path = {
+          "${metadataPrefix}/${name}/*".capabilities = [ "list" ];
+          "${dataPrefix}/${name}/*".capabilities =
+            final.approleCapabilitiesFor params;
+        };
       };
 
     # Create a JSON (HCL) file with the approle's policy from its secret definition
     renderPolicy = { approleName, ... }@params:
       final.renderJSON "policy-${approleName}" (final.mkPolicy params);
+
   };
 
   __toString = self:
@@ -177,7 +173,7 @@
             # If we don't get any arguments, ask about this approle
             ask_write
           elif [[ " $@ " =~ " ${approleName} " ]]; then
-            # If this approle is in the argument list, just upload it
+          # If this approle is in the argument list, just upload it
             write
           fi
         '';
