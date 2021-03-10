@@ -1,5 +1,5 @@
 # Generate and push approles to vault
-{ writeShellScriptBin, jq, vault, coreutils, lib }:
+{ writeShellScriptBin, jq, vault, coreutils, bash, lib }:
 # Inputs: a flake with `nixosConfigurations`
 
 # Usage:
@@ -56,10 +56,10 @@
       final.approleCapabilities.${approleName} or [ "read" ];
 
     # Generate an approle policy from its secret definition
-    mkPolicy = { approleName, name, vaultPathPrefix, namespace, ... }@params:
+    mkPolicy = { approleName, name, vaultPrefix, ... }@params:
       let
-        splitPrefix = builtins.filter builtins.isString
-          (builtins.split "/" vaultPathPrefix);
+        splitPrefix =
+          builtins.filter builtins.isString (builtins.split "/" vaultPrefix);
 
         insertAt = lst: index: value:
           (lib.lists.take index lst) ++ [ value ] ++ (lib.lists.drop index lst);
@@ -70,21 +70,17 @@
         metadataPrefix = makePrefix "metadata";
         dataPrefix = makePrefix "+";
       in {
-        path = [
-          {
-            "${metadataPrefix}/${namespace}/${name}/*" =
-              [{ capabilities = [ "list" ]; }];
-          }
-          {
-            "${dataPrefix}/${namespace}/${name}/*" =
-              [{ capabilities = final.approleCapabilitiesFor params; }];
-          }
-        ];
+        path = {
+          "${metadataPrefix}/${name}/*".capabilities = [ "list" ];
+          "${dataPrefix}/${name}/*".capabilities =
+            final.approleCapabilitiesFor params;
+        };
       };
 
     # Create a JSON (HCL) file with the approle's policy from its secret definition
     renderPolicy = { approleName, ... }@params:
       final.renderJSON "policy-${approleName}" (final.mkPolicy params);
+
   };
 
   __toString = self:
@@ -107,14 +103,7 @@
         in ''
           export VAULT_ADDR="${vaultAddress}"
 
-          # Ensure a valid Vault token is available
-          token_data="$(${vault}/bin/vault token lookup -format=json)"
-          vault_token_never_expire="$(${jq}/bin/jq '.data.expire_time == null' <<< "$token_data")"
-          vault_token_ttl="$(${jq}/bin/jq '.data.ttl' <<< "$token_data")"
-          if [[ $vault_token_never_expire == false && $vault_token_ttl -le 0 ]]; then
-            echo 'Vault token expired or invalid. Please log into vault first.'
-            exit 1
-          fi
+          ${./vault-ensure-token.sh}
 
           write() {
             set -x
@@ -177,7 +166,7 @@
             # If we don't get any arguments, ask about this approle
             ask_write
           elif [[ " $@ " =~ " ${approleName} " ]]; then
-            # If this approle is in the argument list, just upload it
+          # If this approle is in the argument list, just upload it
             write
           fi
         '';
@@ -232,6 +221,7 @@
         lib.concatMapStringsSep "\n" writeApprole allApproleParams;
     in writeShellScriptBin "vault-push-approles" ''
       set -euo pipefail
+      export PATH=$PATH''${PATH:+':'}'${lib.makeBinPath [ jq vault coreutils bash ]}'
       ${writeAllApproles}
     '';
 
