@@ -1,5 +1,5 @@
 # Generate and push approles to vault
-{ writeShellScriptBin, jq, vault, coreutils, bash, lib }:
+{ writeShellScriptBin, writeText, jq, vault, coreutils, bash, lib }:
 # Inputs: a flake with `nixosConfigurations`
 
 # Usage:
@@ -28,7 +28,7 @@
 
     # Render an attrset into a JSON file
     renderJSON = name: content:
-      builtins.toFile "${name}.json" (builtins.toJSON content);
+      writeText "${name}.json" (builtins.toJSON content);
 
     # Default approle parameters
     approleParams = {
@@ -118,7 +118,7 @@
               echo
               case "$REPLY" in
                 # Write all the approles including this one
-                A|a|"")
+                A|a)
                   VAULT_PUSH_ALL_APPROLES=true
                   ;;
                 # Write the current approle, ask for the next one
