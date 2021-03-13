@@ -3,6 +3,8 @@
 
   outputs = { self }: {
 
+    nixosModules.vault-secrets = import ./modules/vault-secrets.nix;
+
     overlay = final: prev: {
       vault-push-approles =
         final.callPackage ./scripts/vault-push-approles.nix { };
