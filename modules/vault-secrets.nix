@@ -188,7 +188,7 @@ in
       let
         secretsPath = "${cfg.outPrefix}/${name}";
       in nameValuePair "${name}-secrets" {
-        path = with pkgs; [ getent jq vault-bin ];
+        path = with pkgs; [ getent jq vault-bin python3 ];
 
         partOf = map (n: "${name}.service") services;
         wantedBy = optional (services == [])  "multi-user.target" ;
@@ -219,13 +219,9 @@ in
         '' + optionalString (secretsKey != null) ''
           json_dump="$(vault kv get -format=json "${cfg.vaultPrefix}/${name}/${secretsKey}" || true)"
           if [[ -n "$json_dump" ]]; then
-        '' + (if secretsAreBase64 then ''
-              dumpsecrets="$(jq -r 'select(.data.data != null) | .data.data | to_entries[] | "base64 -d <<< \"\(.value)\" > ${secretsPath}/\(.key)"' <<< "$json_dump")"
-        '' else ''
-              dumpsecrets="$(jq -r 'select(.data.data != null) | .data.data | to_entries[] | "builtin printf \"%s\\n\" \"\(.value)\" > ${secretsPath}/\(.key)"' <<< "$json_dump")"
-        '') + optionalString (secretsKey != null) ''
-              echo "Found secrets at ${cfg.vaultPrefix}/${name}/secrets (''${#dumpsecrets} bytes)" >&2
-              eval "$dumpsecrets"
+            echo "Found secrets at ${cfg.vaultPrefix}/${name}/${secretsKey}" >&2
+            # call a python script which saves secrets to files in `secretsPath` directory
+            ${../scripts/write_secrets.py} ${optionalString secretsAreBase64 "--base64"} ${lib.escapeShellArg secretsPath} <<< "$json_dump"
           fi
 
         '' + optionalString (environmentKey != null) ''

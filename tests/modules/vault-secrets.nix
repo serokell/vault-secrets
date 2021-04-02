@@ -29,6 +29,7 @@
           script = ''
             ls '${config.vault-secrets.secrets.test}'
             cat '${config.vault-secrets.secrets.test}/test_file' | grep 'Test file contents!'
+            cat '${config.vault-secrets.secrets.test}/check_escaping' | grep "\"'\`"
             env
             echo $HELLO | grep 'Hello, World'
           '';
@@ -91,7 +92,9 @@
 
         # Put secrets for the test unit into Vault
         vault kv put kv/test/environment HELLO='Hello, World'
-        vault kv put kv/test/secrets test_file='Test file contents!'
+        vault kv put kv/test/secrets \
+          test_file='Test file contents!' \
+          check_escaping="\"'\`"
 
         # Set up SSH hostkey to connect to the client
         cat ${ssh-keys.snakeOilPrivateKey} > privkey.snakeoil
