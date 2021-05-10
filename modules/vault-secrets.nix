@@ -76,6 +76,16 @@ let
           '';
         };
 
+        quoteEnvironmentValues = mkOption {
+          type = with types; bool;
+          default = true;
+          example = false;
+          description = ''
+            Whether or not values dumped into the environment file are to be
+            quoted. Because Docker is garbage.
+          '';
+        };
+
         extraScript = mkOption {
           type = with types; nullOr lines;
           default = "";
@@ -227,7 +237,11 @@ in
         '' + optionalString (environmentKey != null) ''
           json_dump="$(vault kv get -format=json "${cfg.vaultPrefix}/${name}/${environmentKey}" || true)"
           if [[ -n "$json_dump" ]]; then
+        '' + (if quoteEnvironmentValues then ''
               jq -r '.data.data | to_entries[] | "${optionalString (environmentVariableNamePrefix != null) "${toUpper environmentVariableNamePrefix}_"}\(.key)=\"\(.value)\""' <<< "$json_dump" > "${secretsPath}/environment"
+        '' else ''
+              jq -r '.data.data | to_entries[] | "${optionalString (environmentVariableNamePrefix != null) "${toUpper environmentVariableNamePrefix}_"}\(.key)=\(.value)"' <<< "$json_dump" > "${secretsPath}/environment"
+        '') + ''
               echo "Dumped environment file at ${secretsPath}/environment" >&2
           fi
 
