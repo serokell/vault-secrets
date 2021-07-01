@@ -201,10 +201,10 @@ in
         path = with pkgs; [ getent jq vault-bin python3 ];
 
         partOf = map (n: "${name}.service") services;
-        wantedBy = optional (services == [])  "multi-user.target" ;
+        wantedBy = optional (services == []) "multi-user.target" ;
 
         # network is needed to access the vault server
-        wants = [ "network-online.target" ];
+        requires = [ "network-online.target" ];
         after = [ "network-online.target" ];
 
         environment.VAULT_ADDR = cfg.vaultAddress;
