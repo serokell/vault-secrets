@@ -1,13 +1,13 @@
 {
   description = "Serokell Vault Tooling";
 
-  inputs.nixpkgs.url = "github:serokell/nixpkgs";
-  inputs.nix-unstable.url = "github:nixos/nix";
-  inputs.flake-utils.url = "github:numtide/flake-utils";
-  inputs.flake-compat.url = "github:edolstra/flake-compat";
+  nixConfig = {
+    flake-registry = "https://github.com/serokell/flake-registry/raw/master/flake-registry.json";
+  };
+
   inputs.flake-compat.flake = false;
 
-  outputs = { self, nixpkgs, flake-utils, ... }@inputs:
+  outputs = { self, nixpkgs, nix, flake-utils, ... }@inputs:
     {
 
     overlay = final: prev: {
@@ -25,7 +25,7 @@
         inherit (pkgs) lib;
         inherit (lib) mapAttrs;
 
-        nixMaster = inputs.nix-unstable.defaultPackage.${system};
+        nixMaster = inputs.nix.defaultPackage.${system};
       in {
         checks = let
           tests = import ./tests/modules/all-tests.nix {
