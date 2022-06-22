@@ -16,6 +16,8 @@
   */
   # pkgs.vault-push-approles { } { extraApproles = [ { ... } ] }
 
+  type = "derivation";
+
   # `final` contains fixed-point functions after applying user-supplied overrides
   overrideable = final: {
 

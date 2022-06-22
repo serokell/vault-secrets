@@ -16,6 +16,8 @@
         "${config.networking.hostName}.${config.networking.domain}");
   };
 
+  type = "derivation";
+
   __toString = self:
     let
 
