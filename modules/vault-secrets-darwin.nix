@@ -11,19 +11,13 @@ in
   options = import ./options.nix { inherit lib cfg; };
 
   config = {
-    systemd.services = lib.mkMerge ([(flip mapAttrs' cfg.secrets (
+    #systemd.services = lib.mkMerge ([(flip mapAttrs' cfg.secrets (
+    launchd.daemons = lib.mkMerge [(flip mapAttrs' cfg.secrets (
       name: scfg: with scfg;
       let
         secretsPath = "${cfg.outPrefix}/${name}";
       in nameValuePair "${name}-secrets" {
         path = with pkgs; [ getent jq vault-bin python3 ];
-
-        partOf = map (n: "${name}.service") services;
-        wantedBy = optional (services == []) "multi-user.target" ;
-
-        # network is needed to access the vault server
-        requires = [ "network-online.target" ];
-        after = [ "network-online.target" ];
 
         environment.VAULT_ADDR = cfg.vaultAddress;
 
@@ -75,19 +69,12 @@ in
         '';
 
         serviceConfig = {
-          EnvironmentFile = environmentFile;
-          RemainAfterExit = true;
-          Type = "oneshot";
-          UMask = "0077";
+          # TODO: figure out how to inject the environment file here properly
+          #EnvironmentFile = environmentFile;
+          KeepAlive = true;
+          Umask = "0077";
         };
       }
-    ))] ++ (flip lib.mapAttrsToList cfg.secrets (
-      name: scfg: with scfg;
-      lib.genAttrs services (services: rec {
-        requires = [ "${name}-secrets.service" ];
-        after = requires;
-        bindsTo = requires;
-      }))
-    ));
+    ))];
   };
 }

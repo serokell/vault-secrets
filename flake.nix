@@ -18,6 +18,7 @@
     };
 
     nixosModules.vault-secrets = import ./modules/vault-secrets.nix;
+    darwinModules.vault-secrets = import ./modules/vault-secrets-darwin.nix;
 
     } // (flake-utils.lib.eachSystem [ "x86_64-linux" ] (system:
       let
