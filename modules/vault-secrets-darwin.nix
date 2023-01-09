@@ -23,6 +23,7 @@ in
 
         script = ''
           set -euo pipefail
+          source ${environmentFile}
 
           # Ensure the base path exists and has the correct permissions
           mkdir -p "${cfg.outPrefix}"
@@ -69,8 +70,6 @@ in
         '';
 
         serviceConfig = {
-          # TODO: figure out how to inject the environment file here properly
-          #EnvironmentFile = environmentFile;
           KeepAlive = true;
           Umask = "0077";
         };
