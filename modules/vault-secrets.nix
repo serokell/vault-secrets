@@ -25,8 +25,9 @@ in
         environment.VAULT_ADDR = cfg.vaultAddress;
 
         script = import ./script.nix { inherit cfg scfg lib name; };
+
         serviceConfig = {
-          #EnvironmentFile = environmentFile;
+          EnvironmentFile = scfg.environmentFile;
           RemainAfterExit = true;
           Type = "oneshot";
           UMask = "0077";

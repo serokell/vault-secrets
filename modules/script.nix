@@ -3,14 +3,13 @@ let
   inherit (scfg)
     environmentKey quoteEnvironmentValues
     environmentVariableNamePrefix extraScript
-    environmentFile user group secretsKey secretsAreBase64;
+    user group secretsKey secretsAreBase64;
   inherit (lib) optionalString toUpper;
 
   secretsPath = "${cfg.outPrefix}/${name}";
 in
 (''
   set -euo pipefail
-  source ${environmentFile}
 
   # Ensure the base path exists and has the correct permissions
   mkdir -p "${cfg.outPrefix}"

@@ -16,7 +16,9 @@ in
         path = with pkgs; [ getent jq vault-bin python3 ];
         environment.VAULT_ADDR = cfg.vaultAddress;
 
-        script = import ./script.nix { inherit lib cfg scfg name; };
+        script = ''
+          source ${scfg.environmentFile}
+        '' + import ./script.nix { inherit lib cfg scfg name; };
 
         serviceConfig = {
           KeepAlive = true;
