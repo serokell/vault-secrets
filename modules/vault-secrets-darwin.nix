@@ -8,7 +8,7 @@ let
   inherit (cfg) flip mapAttrs' mkMerge nameValuePair;
 in
 {
-  options = import ./vault-options.nix { inherit lib cfg; };
+  options = import ./options.nix { inherit lib cfg; };
 
   config = {
     launchd.daemons = mkMerge [(flip mapAttrs' cfg.secrets (
