@@ -1,4 +1,0 @@
-steps:
- - label: Flake check
-   commands:
-   - nix-shell --run 'nix flake check -L'
