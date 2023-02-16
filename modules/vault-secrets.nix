@@ -15,7 +15,7 @@ in
       name: scfg: nameValuePair "${name}-secrets" {
         path = with pkgs; [ getent jq vault-bin python3 ];
 
-        partOf = map (n: "${name}.service") scfg.services;
+        partOf = map (n: "${n}.service") scfg.services;
         wantedBy = optional (scfg.services == []) "multi-user.target" ;
 
         # network is needed to access the vault server
