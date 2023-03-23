@@ -134,6 +134,17 @@ let
           '';
         };
 
+        loginRetries = mkOption {
+          type = with types; int;
+          default = 5;
+          description = ''
+            Number of attempts script will try to login into Vault.
+            This may be useful in case secrets service is restarted when internet
+            connection is not yet available. Sadly After=network-online.target
+            doesn't always guarantee that.
+          '';
+        };
+
         __toString = mkOption {
           default = _: "${cfg.outPrefix}/${name}";
           readOnly = true;
