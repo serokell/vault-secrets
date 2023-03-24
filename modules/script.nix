@@ -3,7 +3,7 @@ let
   inherit (scfg)
     environmentKey quoteEnvironmentValues
     environmentVariableNamePrefix extraScript
-    user group secretsKey secretsAreBase64;
+    user group secretsKey secretsAreBase64 loginRetries;
   inherit (lib) optionalString toUpper;
 
   secretsPath = "${cfg.outPrefix}/${name}";
@@ -18,9 +18,18 @@ in
   # Make sure we start from a clean slate
   rm -rf "${secretsPath}"
   mkdir -p "${secretsPath}"
+  max_retry="${toString loginRetries}"
+  counter="0"
 
+  set +e
   # Log into Vault using credentials from environmentFile
-  vaultOutput="$(vault write -format=json auth/approle/login role_id="$VAULT_ROLE_ID" secret_id=- <<< "$VAULT_SECRET_ID")"
+  until vaultOutput="$(vault write -format=json auth/approle/login role_id="$VAULT_ROLE_ID" secret_id=- <<< "$VAULT_SECRET_ID")"; do
+    echo "Failed to login into Vault, retrying"
+    sleep 5
+    [[ counter -eq $max_retry ]] && echo "Failed to login into Vault" && exit 1
+    ((counter++))
+  done
+  set -e
   jq '.auth.client_token = "redacted"' <<< "$vaultOutput"
   VAULT_TOKEN="$(jq -r '.auth.client_token' <<< "$vaultOutput")"
   export VAULT_TOKEN
