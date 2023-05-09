@@ -5,12 +5,12 @@
 # Usage:
 # apps.x86_64-linux.vault-push-approle-envs = { type = "app"; program = "${pkgs.vault-push-approle-envs self}/bin/vault-push-approle-envs"; }
 
-{ nixosConfigurations ? { }, ... }: rec {
+{ nixosConfigurations ? { }, darwinConfigurations ? { }, ... }: rec {
   overrideable = final: {
     hostNameOverrides = { };
     getHostName = { attrName, config, ... }:
-      final.hostNameOverrides.${attrName} or (if isNull
-      config.networking.domain then
+      final.hostNameOverrides.${attrName} or
+      (if ((!(config.networking ? domain)) || (isNull config.networking.domain)) then
         config.networking.hostName
       else
         "${config.networking.hostName}.${config.networking.domain}");
@@ -66,7 +66,7 @@
       # Find all configurations that have vault-secrets defined
       configsWithSecrets = lib.filterAttrs (_: cfg:
         cfg.config ? vault-secrets && cfg.config.vault-secrets.secrets != { })
-        nixosConfigurations;
+        (nixosConfigurations // darwinConfigurations);
 
       # Get all approles for all NixOS configurations in the given flake
       approleParamsForAllMachines =

@@ -5,7 +5,7 @@
 # Usage:
 # apps.x86_64-linux.vault-push-approles = { type = "app"; program = "${pkgs.vault-push-approles self}/bin/vault-push-approles"; }
 
-{ nixosConfigurations ? { }, ... }: rec {
+{ nixosConfigurations ? { }, darwinConfigurations ? { }, ... }: rec {
   # Overrideable functions
   # Usage examples:
   # pkgs.vault-push-approles self { approleCapabilities.aquarius-albali-borgbackup = [ "read" "write" ]; }
@@ -188,7 +188,7 @@
       # Find all configurations that have vault-secrets defined
       configsWithSecrets = lib.filterAttrs (_: cfg:
         cfg.config ? vault-secrets && cfg.config.vault-secrets.secrets != { })
-        nixosConfigurations;
+        (nixosConfigurations // darwinConfigurations);
 
       # Get all approles for all NixOS configurations in the given flake
       approleParamsForAllMachines =

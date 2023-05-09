@@ -8,7 +8,7 @@ let
   inherit (lib) mkMerge flip mapAttrs' nameValuePair optional;
 in
 {
-  options = import ./options.nix { inherit lib cfg; };
+  options = import ./options.nix { inherit lib cfg pkgs; };
 
   config = {
     systemd.services = mkMerge ([(flip mapAttrs' cfg.secrets (
