@@ -26,18 +26,18 @@ in {
     vaultPrefix = "kv/servers/${config.networking.hostName}";
     vaultAddress = "https://vault.example.com:8200";
 
-    # Define a secret called `mysecret`, with default options.
-    secrets.mysecret = {};
+    # Define a secret called `myservice`, with default options.
+    secrets.myservice = {};
   };
 
   services.myservice = {
     enable = true;
-    environmentFile = "${vs.mysecret}/environment";
+    environmentFile = "${vs.myservice}/environment";
   };
 }
 ```
 
-In this example, we define a secret `mysecret` for a service called
+In this example, we define a secret `myservice` for a service called
 `myservice`. The AppRole used to log in will be `myservice`. In order to
 log in using such an AppRole, it first needs to be created in Vault, and
 credentials for it need to be generated, and placed in
@@ -49,9 +49,9 @@ script generators documented below significantly simplifies the process.
 The secrets themselves will be fetched from Vault from two specific paths under
 `vaultPrefix`. In this example, it will query `kv/servers/hostname/environment`
 and `kv/servers/hostname/secrets`. Any keys defined in `environment` will be
-dumped into `/run/secrets/mysecret/environment` in a format suitable for usage
+dumped into `/run/secrets/myservice/environment` in a format suitable for usage
 with systemd `EnvironmentFile`. Any keys defined in `secrets` will be dumped
-into individual files under `/run/secrets/mysecret`, named after the keys, and
+into individual files under `/run/secrets/myservice`, named after the keys, and
 containing the corresponding value. The values of `secrets` may optionally be
 flagged as `base64` encoded, which is recommended if you need to store binary
 data or multiline text, as Vault has a bad habit of mangling these.
