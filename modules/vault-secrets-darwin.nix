@@ -27,14 +27,13 @@ in
         '' + import ./script.nix { inherit lib cfg scfg name; } + ''
           # File to signal the restart for the daemon that uses fetched secrets
           touch "${cfg.outPrefix}/${name}-fetched"
-          # To avoid restarting the daemon after fetching secrets
-          /bin/launchctl unload /Library/LaunchDaemons/org.nixos.${name}-secrets.plist
         '';
 
         serviceConfig = {
           ProcessType = "Interactive";
           ThrottleInterval = 30;
 
+          KeepAlive.SuccessfulExit = false;
           KeepAlive.PathState."${scfg.environmentFile}" = true;
           # This is actually 0077, but
           # property lists do not support encoding integers in octal
