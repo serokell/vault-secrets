@@ -13,7 +13,7 @@ in
   config = {
     launchd.daemons = mkMerge ([(flip mapAttrs' cfg.secrets (
       name: scfg: nameValuePair "${name}-secrets" {
-        path = with pkgs; [ getent jq vault-bin python3 coreutils bash ];
+        path = with pkgs; [ getent jq vault python3 coreutils bash ];
         environment.VAULT_ADDR = cfg.vaultAddress;
         # Needed to store vault token
         environment.HOME = "/var/root";
