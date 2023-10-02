@@ -101,7 +101,7 @@ module, and output a script that automates processes required to make the
 module work. Both resulting scripts must be ran with an administrative-level
 vault token after adding or changing the secrets definition.
 
-Example of both script generators in action can be found here: <https://github.com/serokell/pegasus-infra/blob/ec204726674c5aa9c65ab170d1118e2d6bbcdb85/flake.nix#L89>
+Example of both script generators in action can be found here: <https://github.com/serokell/gemini-infra/blob/6bb3e0d/flake.nix#L118>
 
 In short, you want to overlay the `overlay` from [this flake](./flake.nix)
 on top of your nixpkgs, and then add `pkgs.vault-push-approles self { /*
