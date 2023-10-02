@@ -1,11 +1,14 @@
 {
   description = "Serokell Vault Tooling";
 
-  nixConfig = {
-    flake-registry = "https://github.com/serokell/flake-registry/raw/master/flake-registry.json";
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    utils.url = "github:numtide/flake-utils";
+    flake-compat = {
+      url = "github:edolstra/flake-compat";
+      flake = false;
+    };
   };
-
-  inputs.flake-compat.flake = false;
 
   outputs = { self, nixpkgs, nix, flake-utils, ... }@inputs:
     {
@@ -25,8 +28,6 @@
         pkgs = nixpkgs.legacyPackages.${system};
         inherit (pkgs) lib;
         inherit (lib) mapAttrs;
-
-        nixMaster = inputs.nix.defaultPackage.${system};
       in {
         checks = let
           tests = import ./tests/modules/all-tests.nix {
@@ -37,7 +38,5 @@
         in { inherit (tests) vault-secrets; };
 
         legacyPackages = nixpkgs.legacyPackages.${system}.extend self.overlay;
-
-        devShell = pkgs.mkShell { buildInputs = [ nixMaster ]; };
       }));
 }
