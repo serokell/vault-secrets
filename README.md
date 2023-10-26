@@ -12,7 +12,7 @@ Each service is expected to have a separate "secret" with its own AppRole used
 to log in. Secrets are never written to disk, but kept in tmpfs. By default,
 they are only accessible by `root` and are `chmod 600`.
 
-In this example, substitute `example` for a valid service name, and `hostname`
+In this example, substitute `myservice` for a valid service name, and `hostname`
 for your machine's hostname.
 
 ```nix
