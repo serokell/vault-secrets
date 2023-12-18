@@ -125,6 +125,6 @@ want to override some hostnames, use `hostnameOverrides` like this:
 
 ```nix
 vault-push-approle-envs self {
-  hostnameOverrides."<attribute name in nixosConfigurations>" = "new.host.name";
+  hostNameOverrides."<attribute name in nixosConfigurations>" = "new.host.name";
 }
 ```
