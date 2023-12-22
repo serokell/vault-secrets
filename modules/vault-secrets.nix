@@ -1,11 +1,11 @@
-# SPDX-FileCopyrightText: 2020 Serokell <https://serokell.io/>
+# SPDX-FileCopyrightText: 2020-2023 Serokell <https://serokell.io/>
 #
 # SPDX-License-Identifier: MPL-2.0
 
 { config, lib, pkgs, ... }:
 let
   cfg = config.vault-secrets;
-  inherit (lib) mkMerge flip mapAttrs' nameValuePair optional;
+  inherit (lib) mkMerge mkDefault flip mapAttrs' nameValuePair optional;
 in
 {
   options = import ./options.nix { inherit lib cfg pkgs; };
@@ -26,11 +26,16 @@ in
 
         script = import ./script.nix { inherit cfg scfg lib name; };
 
+        startLimitBurst = mkDefault 5;
+        startLimitIntervalSec = mkDefault 300;
+
         serviceConfig = {
           EnvironmentFile = scfg.environmentFile;
           RemainAfterExit = true;
           Type = "oneshot";
           UMask = "0077";
+          Restart = mkDefault "on-failure";
+          RestartSec = mkDefault 10;
         };
       }
     ))] ++ (flip lib.mapAttrsToList cfg.secrets (
