@@ -14,6 +14,7 @@
         config.networking.hostName
       else
         "${config.networking.hostName}.${config.networking.domain}");
+    getConfigurationOverrides = params: { };
   };
 
   type = "derivation";
@@ -27,12 +28,18 @@
       pushApproleEnv =
         { approleName, vaultAddress, environmentFile, ... }@params:
         let
-          hostname = final.getHostName params;
+          configOverrides = {
+            hostname = final.getHostName params;
+            sshUser = null;
+            sshOpts = [];
+          } // final.getConfigurationOverrides params;
+
+          host = "${if configOverrides.sshUser != null then "${configOverrides.sshUser}@" else ""}${configOverrides.hostname}";
 
           push = ''
             ${
               ./vault-get-approle-env.sh
-            } ${approleName} | ssh "${hostname}" ''${SSH_OPTS:-} "sudo mkdir -p ${
+            } ${approleName} | ssh ${lib.escapeShellArg host} ${lib.escapeShellArgs configOverrides.sshOpts} ''${SSH_OPTS:-} "sudo mkdir -p ${
               builtins.dirOf environmentFile
             }; sudo tee ${environmentFile} >/dev/null"
           '';
@@ -43,7 +50,7 @@
 
           if [[ $# -eq 0 ]] || [[ " $@ " =~ " ${approleName} " ]]; then
             # If we don't get any arguments, or the current approle name is in the arguments list, push it
-            echo "Uploading ${approleName} to ${hostname}"
+            echo "Uploading ${approleName} to ${configOverrides.hostname}"
             set -x
             ${push}
             set +x

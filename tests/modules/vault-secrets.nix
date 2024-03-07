@@ -99,8 +99,6 @@
         # Set up SSH hostkey to connect to the client
         cat ${ssh-keys.snakeOilPrivateKey} > privkey.snakeoil
         chmod 600 privkey.snakeoil
-        SSH_OPTS='-o StrictHostKeyChecking=no -i privkey.snakeoil'
-        export SSH_OPTS
 
         # Unset VAULT_ADDR and PATH to make sure those are set correctly in the scripts
         # We keep VAULT_TOKEN set because it's actually used to authenticate to vault
@@ -112,7 +110,17 @@
         ${vault-push-approles fakeFlake}/bin/vault-push-approles test
 
         # Upload approle environments to the client
-        ${vault-push-approle-envs fakeFlake}/bin/vault-push-approle-envs
+        ${vault-push-approle-envs fakeFlake {
+          getConfigurationOverrides = { attrName, ... }: {
+            client = {
+              # all of these are optional and the defaults for `hostname` and `sshUser` here would be fine.
+              # we specify them just for demonstration.
+              hostname = "client";
+              sshUser = "root";
+              sshOpts = [ "-o" "StrictHostKeyChecking=no" "-i" "privkey.snakeoil" ];
+            };
+          }.${attrName};
+        }}/bin/vault-push-approle-envs
       '';
     in ''
       start_all()
