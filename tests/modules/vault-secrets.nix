@@ -42,7 +42,7 @@
 
         services.openssh = {
           enable = true;
-          permitRootLogin = "yes";
+          settings.PermitRootLogin = "yes";
         };
 
         users.users.root = {
