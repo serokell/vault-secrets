@@ -9,7 +9,7 @@
     };
   };
 
-  outputs = { self, nixpkgs, nix, flake-utils, ... }@inputs:
+  outputs = { self, nixpkgs, nix, ... }@inputs:
     let
       forSystems = nixpkgs.lib.genAttrs [ "x86_64-linux" ];
     in
@@ -22,6 +22,7 @@
       };
 
       nixosModules.vault-secrets = import ./modules/vault-secrets.nix;
+      darwinModules.vault-secrets = import ./modules/vault-secrets-darwin.nix;
 
       checks = forSystems (system:
         let
