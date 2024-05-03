@@ -38,10 +38,12 @@ in
   json_dump="$(vault kv get -format=json "${cfg.vaultPrefix}/${name}/${secretsKey}" || true)"
   if [[ -n "$json_dump" ]]; then
     echo "Found secrets at ${cfg.vaultPrefix}/${name}/${secretsKey}" >&2
-    # call a python script which saves secrets to files in `secretsPath` directory
-    ${../scripts/write_secrets.py} ${optionalString secretsAreBase64 "--base64"} ${lib.escapeShellArg secretsPath} <<< "$json_dump"
+    jq --raw-output0 '.data.data | to_entries | .[] | "name=" + (.key | @sh) + ";value=" + (.value | @sh)' <<< "$json_dump" |
+      while IFS= read -rd "" line; do
+        eval "$line"
+        cat <<< "$value" ${optionalString secretsAreBase64 " | base64 -d "} > "${secretsPath}/$name"
+      done
   fi
-
 '' + optionalString (environmentKey != null) ''
   json_dump="$(vault kv get -format=json "${cfg.vaultPrefix}/${name}/${environmentKey}" || true)"
   if [[ -n "$json_dump" ]]; then
