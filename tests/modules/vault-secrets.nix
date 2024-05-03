@@ -8,13 +8,14 @@
   in rec {
     name = "vault-secrets";
     nodes = {
-      server = { pkgs, ... }:
+      server = { pkgs, lib, ... }:
         let
           serverArgs =
             "-dev -dev-root-token-id='root' -dev-listen-address='0.0.0.0:${toString vault-port}'";
         in {
           # An unsealed dummy vault
           networking.firewall.allowedTCPPorts = [ vault-port ];
+          nixpkgs.config.allowUnfreePredicate = pkg: builtins.elem (pkg.pname) [ "vault" ];
           systemd.services.dummy-vault = {
             wantedBy = [ "multi-user.target" ];
             path = with pkgs; [ getent vault ];
@@ -22,7 +23,7 @@
           };
         };
 
-      client = { pkgs, config, ... }: {
+      client = { pkgs, config, lib, ... }: {
         imports = [ self.nixosModules.vault-secrets ];
 
         systemd.services.test = {
@@ -50,6 +51,7 @@
           openssh.authorizedKeys.keys = [ ssh-keys.snakeOilPublicKey ];
         };
 
+        nixpkgs.config.allowUnfreePredicate = pkg: builtins.elem (pkg.pname) [ "vault" ];
         vault-secrets = {
           vaultAddress = vault-address;
           secrets.test = { };
@@ -58,7 +60,8 @@
         networking.hostName = "client";
       };
 
-      supervisor = { pkgs, ... }: {
+      supervisor = { pkgs, lib, ... }: {
+        nixpkgs.config.allowUnfreePredicate = pkg: builtins.elem (pkg.pname) [ "vault" ];
         environment.systemPackages = [ pkgs.vault ];
       };
     };
@@ -73,8 +76,11 @@
         };
       };
 
-      inherit (self.legacyPackages.${pkgs.system})
-        vault-push-approles vault-push-approle-envs;
+      inherit (import self.inputs.nixpkgs {
+        inherit (pkgs) system;
+        config.allowUnfreePredicate = pkg: builtins.elem (pkg.pname) [ "vault" ];
+        overlays = [ self.outputs.overlays.default ];
+      }) vault-push-approles vault-push-approle-envs;
 
       supervisor-setup = pkgs.writeShellScript "supervisor-setup" ''
         set -euo pipefail
