@@ -9,7 +9,7 @@
     };
   };
 
-  outputs = { self, nixpkgs, nix, ... }@inputs:
+  outputs = { self, nixpkgs, ... }@inputs:
     let
       forSystems = nixpkgs.lib.genAttrs [ "x86_64-linux" ];
     in
