@@ -20,7 +20,6 @@ for your machine's hostname.
 let
   vs = config.vault-secrets.secrets;
 in {
-
   vault-secrets = {
     # This applies to all secrets
     vaultPrefix = "kv/servers/${config.networking.hostName}";
@@ -36,6 +35,16 @@ in {
   };
 }
 ```
+
+Note that since version `1.15.0` Vault is distributed under an unfree "Business Source License"
+and if you want to use `vault-secrets` within your Nix configuration, you'll have to explicitly allow
+`vault` unfree package in your configuration. The most convenient way to do this is to add
+```
+nixpkgs.config.allowUnfreePredicate = pkg: builtins.elem (pkg.pname) [ "vault" ];
+```
+to the configuration of the system that uses `vault-secrets` module.
+Also please note that `allowUnfreePredicate` definitions don't combine and it may override
+this settings in your existing configuration in which case make sure to combine them manually.
 
 In this example, we define a secret `myservice` for a service called
 `myservice`. The AppRole used to log in will be `myservice`. In order to
@@ -107,6 +116,34 @@ In short, you want to overlay the `overlay` from [this flake](./flake.nix)
 on top of your nixpkgs, and then add `pkgs.vault-push-approles self { /*
 overrides */ }` and `pkgs.vault-push-approle-envs self { /* overrides */
 }` either to your `devShell`, or as separate `apps` in your flake.
+
+Due to the fact that Vault is distributed under unfree license you'll also need
+to explicitly allow this unfree packages in your overlay, for example:
+```
+{
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    vault-secrets = "github:serokell/vault-secrets";
+    ...
+  };
+  outputs = { self, nixpkgs, vault-secrets, .. }@inputs:
+    let
+      pkgs = import nixpkgs {
+        config.allowUnfreePredicate = pkg: builtins.elem (pkg.pname) [ "vault" ];
+        overlays = [ vault-secrets.overlays.default ];
+      };
+    in {
+      devShells.x86_64-linux.default = pkgs.mkShell {
+        VAULT_ADDR = "https://my-vault-instance.org";
+        buildInputs = [
+          pkgs.vault
+          (pkgs.vault-push-approle-envs self)
+          (pkgs.vault-push-approles self)
+        ];
+      };
+    }
+}
+```
 
 ### `vault-push-approles`
 
