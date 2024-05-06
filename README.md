@@ -157,8 +157,24 @@ of the script generator).
 
 This script fetches approle credentials from Vault and then pushes those
 credentials to the servers, so that the module can authenticate to Vault.
-It guesses server hostnames from their `networking` config option. If you
-want to override some hostnames, use `hostnameOverrides` like this:
+By default, the ssh hostnames and options are guessed from their `networking`
+config option. If you want to override the options for some hostnames, use
+`getConfigurationOverrides` like this:
+
+```nix
+vault-push-approle-envs self {
+  getConfigurationOverrides = { attrName, ... }: {
+    "<attribute name in nixosConfigurations>" = {
+      # all of these are optional. override just what you need.
+      hostname = "new.host.name";
+      sshUser = "remote_ssh_user";
+      sshOpts = [ "-i" "ssh_host/key" ];
+    };
+  }.${attrName};
+}
+```
+
+Another option is the older `hostNameOverrides` for simpler, hostname-only overrides:
 
 ```nix
 vault-push-approle-envs self {
