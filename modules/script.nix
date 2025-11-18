@@ -38,7 +38,7 @@ in
   json_dump="$(vault kv get -format=json "${cfg.vaultPrefix}/${name}/${secretsKey}" || true)"
   if [[ -n "$json_dump" ]]; then
     echo "Found secrets at ${cfg.vaultPrefix}/${name}/${secretsKey}" >&2
-    jq --raw-output0 '.data.data | to_entries | .[] | "name=" + (.key | @sh) + ";value=" + (.value | @sh)' <<< "$json_dump" |
+    jq --raw-output0 '.data.data | to_entries | .[] | "name=" + (.key | @sh) + ";value=" + (if (.value | type) == "string" then (.value | @sh) else (.value | @json | @sh) end)' <<< "$json_dump" |
       while IFS= read -rd "" line; do
         eval "$line"
         cat <<< "$value" ${optionalString secretsAreBase64 " | base64 -d "} > "${secretsPath}/$name"

@@ -31,6 +31,9 @@
             ls '${config.vault-secrets.secrets.test}'
             cat '${config.vault-secrets.secrets.test}/test_file' | grep 'Test file contents!'
             cat '${config.vault-secrets.secrets.test}/check_escaping' | grep "\"'\`"
+            cat '${config.vault-secrets.secrets.test}/complex_json' | ${pkgs.jq}/bin/jq -r .key1 | grep "value1"
+            cat '${config.vault-secrets.secrets.test}/complex_json' | ${pkgs.jq}/bin/jq -r .key2.subkey | grep "subvalue"
+            cat '${config.vault-secrets.secrets.test}/complex_json' | ${pkgs.jq}/bin/jq -r .key3[0] | grep "listitem1"
             env
             echo $HELLO | grep 'Hello, World'
           '';
@@ -100,7 +103,8 @@
         vault kv put kv/test/environment HELLO='Hello, World'
         vault kv put kv/test/secrets \
           test_file='Test file contents!' \
-          check_escaping="\"'\`"
+          check_escaping="\"'\`" \
+          complex_json='{"key1": "value1", "key2": {"subkey": "subvalue"}, "key3": ["listitem1", "listitem2"]}'
 
         # Set up SSH hostkey to connect to the client
         cat ${ssh-keys.snakeOilPrivateKey} > privkey.snakeoil
